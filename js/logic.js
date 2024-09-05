@@ -30,7 +30,7 @@ async function main() {
 function getUrlParameters() {
 
     const params = new URLSearchParams(location.search);
-    currentViewId = params.get('view');
+    currentViewId = params.get('vista');
     examId = params.get('examen');
 }
 
@@ -52,6 +52,8 @@ function updateUI() {
             break;
 
         default:
+            document.getElementById('page-title').innerHTML = `${PAGE_TITLE}`;
+            document.getElementById('default').classList.remove('d-none');
             break;
     }
 }
@@ -77,10 +79,42 @@ function updateQuestionsView() {
 // Returns html for questions as listed as cards
 function questionsCardsHtml(questions, showAnswer, setQuestionsIx) {
 
+    const regex = new RegExp('^[1-9]\.');
     let html = '';
+    let instruction = '';
     let questionId = undefined;
     let questionIx = 0;
+    let optionIx = undefined;
     questions.forEach(question => {
+        switch (question.type) {
+            
+            case 'OM':
+                instruction = '';
+                optionIx = 1;
+                question.instruction.split('<br>').forEach(line => {
+                    if (regex.test(line)) {
+                        instruction += `
+                            <div class="form-check mt-3">
+                                <input 
+                                    class="form-check-input" 
+                                    type="checkbox" 
+                                    name="${question.id}-btn" 
+                                    id="${question.id}-${optionIx}" 
+                                    value="${optionIx}"
+                                    onclick="updateAnswers(${questionIx}, '${question.type}', '${optionIx}')">
+                                <label class="form-check-label" for="${question.id}-${optionIx}">&nbsp;&nbsp;&nbsp;${optionIx}.${marked.parse(line.replace(`${optionIx}.`, '')).replace('<p>', '').replace('</p>', '')}</label>
+                            </div>`;
+                        optionIx++;
+                    } else {
+                        instruction += marked.parse(line);
+                    }
+                });
+                break;
+        
+            default:
+                instruction = marked.parse(question.instruction);
+                break;
+        }
         questionId = setQuestionsIx ? questionIx + 1 : question.id;
         html += `
             <div id="${questionId}-card" class="card mt-4 mx-auto" style="width:98%">
@@ -88,7 +122,7 @@ function questionsCardsHtml(questions, showAnswer, setQuestionsIx) {
                     ${questionId}
                 </div>
                 <div class="card-body">
-                    <div class="card-text">${marked.parse(question.instruction)}</div>
+                    <div class="card-text">${instruction}</div>
                     ${questionHtmlCardAnswer(questionIx, question, showAnswer)}
                 </div>
             </div>
@@ -105,17 +139,19 @@ function questionHtmlCardAnswer(questionIx, question, showAnswer) {
     let html = '';
     let htmlAnswer = '';
     switch (question.type) {
+        
+        // True/False
         case 'V/F':
             if (showAnswer) {
-                    htmlAnswer = `
-                        <div class="mt-3" style="font-size:90%">
-                            <p style="margin-top:15px">
-                                <button type="button" class="btn btn-link" title="Ver respuesta" onclick="toggleAnswer(${question.id})">Respuesta</button>
-                                <span id="${question.id}-respuesta" class="d-none" style="margin-left:8px">${question.answer == 'V' ? 'Verdadero' : 'Falso'}</span>
-                                <span id="${question.id}-respuesta-correccion" style="margin-right:5px"></span>
-                        </div>  
-                    `;
-                }
+                htmlAnswer = `
+                    <div class="mt-3" style="font-size:90%">
+                        <p style="margin-top:15px">
+                            <button type="button" class="btn btn-link" title="Ver respuesta" onclick="toggleAnswer(${question.id})">Respuesta</button>
+                            <span id="${question.id}-respuesta" class="d-none" style="margin-left:8px">${question.answer == 'V' ? 'Verdadero' : 'Falso'}</span>
+                            <span id="${question.id}-respuesta-correccion" style="margin-right:5px"></span>
+                    </div>  
+                `;
+            }
             html = `
                 <div class="btn-group" role="group" style="margin-top:30px">
                     <div class="form-check form-check-inline">
@@ -125,7 +161,7 @@ function questionHtmlCardAnswer(questionIx, question, showAnswer) {
                             name="${question.id}-btn" 
                             id="${question.id}-verdadero" 
                             value="V"
-                            onclick="updateAnswers(${questionIx}, ${question.id}, 'V')">
+                            onclick="updateAnswers(${questionIx}, '${question.type}', 'V')">
                         <label class="form-check-label" for="${question.id}-verdadero">Verdadero</label>
                     </div>
                     <div class="form-check form-check-inline">
@@ -135,12 +171,27 @@ function questionHtmlCardAnswer(questionIx, question, showAnswer) {
                             name="${question.id}-btn" 
                             id="${question.id}-false" 
                             value="F"
-                            onclick="updateAnswers(${questionIx}, ${question.id}, 'F')">
+                            onclick="updateAnswers(${questionIx}, '${question.type}', 'F')">
                         <label class="form-check-label" for="${question.id}-falso">Falso</label>
                     </div>
                 </div>
                 ${htmlAnswer} 
             `;
+            break;
+        
+        // Multiple options
+        case 'OM':
+            if (showAnswer) {
+                htmlAnswer = `
+                    <div class="mt-3" style="font-size:90%">
+                        <p style="margin-top:15px">
+                            <button type="button" class="btn btn-link" title="Ver respuesta" onclick="toggleAnswer(${question.id})">Respuesta</button>
+                            <span id="${question.id}-respuesta" class="d-none" style="margin-left:8px">${question.answer}</span>
+                            <span id="${question.id}-respuesta-correccion" style="margin-right:5px"></span>
+                    </div>  
+                `;
+            }
+            html += `${htmlAnswer}`;
             break;
     
         default:
@@ -176,24 +227,26 @@ function updateExamsView() {
         }
     }
 
-    // Updates page title
-    document.getElementById('page-title').innerHTML = `${PAGE_TITLE} - Exámenes `;
-    document.getElementById('examenes-info').innerHTML = `<h6 style="margin-left:15px">Examen ${examId} - ${exams[examIx].name}</h6>`;
+    if (examIx !== undefined) {
+        // Updates page title
+        document.getElementById('page-title').innerHTML = `${PAGE_TITLE} - Exámenes `;
+        document.getElementById('examenes-info').innerHTML = `<h6 style="margin-left:15px">Examen ${examId} - ${exams[examIx].name}</h6>`;
 
-    // Populates answers list
-    exams[examIx].questions.forEach(question => {
-        exams[examIx].answers.push('');
-    });
-    
+        // Populates answers list
+        exams[examIx].questions.forEach(question => {
+            exams[examIx].answers.push('');
+        });
+        
 
-    // Updates question tab
-    updateQuestionsTab();
+        // Updates question tab
+        updateQuestionsTab();
 
-    // Shows questions view
-    document.getElementById('preguntas-contenido').classList.add('d-none');
-    document.getElementById('preguntas-filtros').classList.add('d-none');
-    document.getElementById('examenes').classList.remove('d-none');
-    document.getElementById('examenes-info').classList.remove('d-none');
+        // Shows questions view
+        document.getElementById('preguntas-contenido').classList.add('d-none');
+        document.getElementById('preguntas-filtros').classList.add('d-none');
+        document.getElementById('examenes').classList.remove('d-none');
+        document.getElementById('examenes-info').classList.remove('d-none');
+    }
 }
 
 
@@ -205,9 +258,29 @@ function updateQuestionsTab() {
 
 
 // Updates answers lists
-function updateAnswers(questionIx, questionId, answer) {
+function updateAnswers(questionIx, questionType, answer) {
+    
+    let currentAnswer = exams[examIx].answers[questionIx];
+    let currentAnswers = undefined;
+    switch (questionType) {
+        case 'V/F':
+            exams[examIx].answers[questionIx] = answer;
+            break;
 
-    exams[examIx].answers[questionIx] = answer;
+        case 'OM':
+            if (currentAnswer === '') {
+                exams[examIx].answers[questionIx] = answer;
+            } else {
+                currentAnswers = currentAnswer.split('; ');
+                currentAnswers.push(answer)
+                currentAnswers.sort();
+                exams[examIx].answers[questionIx] = currentAnswers.join('; ');
+            }
+            break;
+    
+        default:
+            break;
+    }
 }
 
 
