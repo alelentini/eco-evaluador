@@ -95,7 +95,7 @@ function questionsCardsHtml(questions, showAnswer, setQuestionsIx) {
         for (questionIx = 0; questionIx < questions.length; questionIx++) {
             questions[questionIx].points = exams[examIx].questionsPoints[questionIx];
         }
-        questions.sort((question1, question2) => question2.points - question1.points);
+        //questions.sort((question1, question2) => question2.points - question1.points);
     }
     
     questionIx = 0;
@@ -330,8 +330,11 @@ function updateExamsView() {
 
 // Updates UI: exams view > questions tab
 function updateQuestionsTab() {
-
-    document.getElementById('nav-tab-contents-examenes-preguntas').innerHTML = questionsCardsHtml(questions.filter(question => exams[examIx].questions.includes(question.id)), false, true);
+    let examQuestions = [];
+    exams[examIx].questions.forEach(examQuestionId => {
+        examQuestions.push(questions.filter(question => question.id === examQuestionId)[0]);
+    });
+    document.getElementById('nav-tab-contents-examenes-preguntas').innerHTML = questionsCardsHtml(examQuestions, false, true);
 }
 
 
