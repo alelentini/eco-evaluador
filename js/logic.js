@@ -375,6 +375,7 @@ function updateAnswers(questionIx, questionType, answerIx, answerInputId) {
 function updateDeliveryData() {
 
     let endTIme = new Date();
+    let answers = getAnswers();
 
     // Updates delivery data > delivery tab
     let html = `
@@ -383,7 +384,7 @@ function updateDeliveryData() {
         <p>Inicio: ${startTime.toTimeString().substring(0, 8)}</p>
         <p>Fin: ${endTIme.toTimeString().substring(0, 8)}</p>
         <p id='datos-entrega-legajo'>Legajo: </p>
-        <p>Respuestas: ${exams[examIx].answers.join(', ')}</p>
+        <p>Respuestas: ${answers}</p>
     `;
     document.getElementById('datos-entrega').innerHTML = html;
 
@@ -393,7 +394,7 @@ Fecha: ${startTime.toISOString().substring(0, 10)}
 Inicio: ${startTime.toTimeString().substring(0, 8)}
 Fin: ${endTIme.toTimeString().substring(0, 8)}
 Legajo: 
-Respuestas: ${exams[examIx].answers.join(', ')}`;
+Respuestas: ${answers}`;
     navigator.clipboard.writeText(deliveryData);
 }
 
@@ -418,4 +419,16 @@ function configurePlugins() {
 
     // Marked.js configuration
     marked.use({gfm: true, breaks: true});
+}
+
+
+function getAnswers() {
+    
+    let answers = exams[examIx].answers;
+    answers.forEach((answer, ix) => {
+        if(answer == '') {
+            answers[ix] = 'SR';
+        }
+    });
+    return answers.join(', ');
 }
