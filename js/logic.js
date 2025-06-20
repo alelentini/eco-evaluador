@@ -36,6 +36,17 @@ function getUrlParameters() {
 }
 
 
+// Update answers with no response code 'SR'
+function updateAnswersNoResponse() {
+
+    for (let examIx = 0; examIx < exams.length; examIx++) {
+        for (let answerIx = 0; answerIx < exams[examIx].questions.length; answerIx++) {
+            exams[examIx].answers.push('SR');
+        }
+    }
+}
+
+
 /**************************************************************************************************************************************************
 /* GUI functions 
 /**************************************************************************************************************************************************/
@@ -303,14 +314,14 @@ function updateExamsView() {
                     answers = [];
                     question.instruction.split('\n').forEach(line => {
                         if (regex.test(line)) {
-                            answers.push('');
+                            answers.push('SR');
                         }
                     });
                     exams[examIx].answers.push(answers.join('; '));
                     break;
             
                 default:
-                    exams[examIx].answers.push('');
+                    exams[examIx].answers.push('SR');
                     break;
             }
         });
@@ -349,11 +360,15 @@ function updateAnswers(questionIx, questionType, answerIx, answerInputId) {
             break;
 
         case 'OM':
-            if (currentAnswer === '') {
+            if (currentAnswer === 'SR') {
                 exams[examIx].answers[questionIx] = answerIx;
             } else {
                 currentAnswers = currentAnswer.split('; ');
-                currentAnswers.push(answerIx)
+                if (currentAnswers.includes(answerIx)) {
+                    currentAnswers.splice(currentAnswers.indexOf(answerIx), 1)
+                } else {
+                    currentAnswers.push(answerIx);
+                }
                 currentAnswers.sort();
                 exams[examIx].answers[questionIx] = currentAnswers.join('; ');
             }
